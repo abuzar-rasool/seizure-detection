@@ -42,7 +42,7 @@ function detectSeizure(accelBuffer, sampleRate, updateGUI)
     powerRatioThreshold = 0.05;  % Lowered threshold
     
     % Check for seizure
-    status = 'Monitoring...';
+    status = 'No Seizure';
     if roiPower > roiThreshold && powerRatio > powerRatioThreshold
         status = 'Seizure detected!';
         % Debug message for seizure detection
@@ -55,5 +55,5 @@ function detectSeizure(accelBuffer, sampleRate, updateGUI)
     
     % Update GUI with current data
     timeData = linspace(0, n/sampleRate, n);
-    updateGUI(timeData, accelMagnitude, f, accelPower, status);
+    updateGUI(timeData, accelMagnitude, status);
 end
