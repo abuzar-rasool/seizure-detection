@@ -10,8 +10,6 @@ function guiHandles = createGUI(stateManager)
     xlabel(hAxesTime, 'Time (s)');
     ylabel(hAxesTime, 'Acceleration (m/s^2)');
 
-
-
     % Detection Status - Heading and Text
     hTextDetectionHeading = uicontrol('Style', 'text', 'Parent', hFig, ...
                             'String', 'Detection Status:', ...
@@ -50,12 +48,12 @@ function guiHandles = createGUI(stateManager)
     % Update function for GUI
     function updateGUI(timeData, accelData, status)
         % Debug print to verify GUI updates
-        disp('Updating GUI');
-        disp(['Status: ', status]);
 
+        % Update the plot with new data
         set(hLineTime, 'XData', timeData, 'YData', accelData);
         
-        set(hTextDetectionStatus, 'String', [status]);
+        % Update the detection status text
+        set(hTextDetectionStatus, 'String', status);
         
         % Change color based on status
         if contains(status, 'Seizure detected')
