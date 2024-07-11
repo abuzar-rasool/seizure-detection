@@ -1,6 +1,6 @@
-function detectSeizure(accelBuffer, sampleRate, updateGUI, timeBuffer, ...
+function [roiPower, powerRatio, seizureDetected] = detectSeizure(accelBuffer, sampleRate, updateGUI, timeBuffer, ...
                        SECONDS_FOR_DETECTION, ROI_THRESHOLD, POWER_RATIO_THRESHOLD, ...
-                       MIN_SEIZURE_COUNT, MAX_DETECTION_COUNT)
+                       WARNING_THRESHOLD, ALARM_THRESHOLD, MIN_SEIZURE_COUNT, MAX_DETECTION_COUNT)
     % Persistent variables to retain values across function calls
     persistent detectionCount lastStatus lastUpdateTime seizureCount
 
@@ -14,12 +14,17 @@ function detectSeizure(accelBuffer, sampleRate, updateGUI, timeBuffer, ...
     if nargin < 5, SECONDS_FOR_DETECTION = 5; end
     if nargin < 6, ROI_THRESHOLD = 3; end
     if nargin < 7, POWER_RATIO_THRESHOLD = 0.01; end
-    if nargin < 8, MIN_SEIZURE_COUNT = 2; end
-    if nargin < 9, MAX_DETECTION_COUNT = 3; end
+    if nargin < 8, WARNING_THRESHOLD = 2; end
+    if nargin < 9, ALARM_THRESHOLD = 3; end
+    if nargin < 10, MIN_SEIZURE_COUNT = 2; end
+    if nargin < 11, MAX_DETECTION_COUNT = 3; end
 
     % Check if buffer is empty
     if isempty(accelBuffer)
         disp('Buffer is empty, skipping detection');
+        roiPower = NaN;
+        powerRatio = NaN;
+        seizureDetected = false;
         return;
     end
 
@@ -27,6 +32,9 @@ function detectSeizure(accelBuffer, sampleRate, updateGUI, timeBuffer, ...
     numSamples = sampleRate * SECONDS_FOR_DETECTION;
     if size(accelBuffer, 1) < numSamples
         disp('Not enough data for 5 seconds, skipping detection');
+        roiPower = NaN;
+        powerRatio = NaN;
+        seizureDetected = false;
         return;
     end
 
@@ -37,14 +45,24 @@ function detectSeizure(accelBuffer, sampleRate, updateGUI, timeBuffer, ...
     % Perform FFT and power calculations every detection interval
     if recentTimeBuffer(end) - lastUpdateTime >= SECONDS_FOR_DETECTION
         [roiPower, powerRatio, totalPower] = processFFTAndPower(recentAccelBuffer, sampleRate);
-
+        
         % Debugging information
         disp(['ROI Power: ', num2str(roiPower)]);
         disp(['Power Ratio: ', num2str(powerRatio)]);
+        
+        if isnan(roiPower) || isnan(powerRatio)
+            disp('FFT processing returned NaN values.');
+        end
+        
+        roiThresholdReached = roiPower > ROI_THRESHOLD;
+        powerRatioThresholdReached = powerRatio > POWER_RATIO_THRESHOLD;
+
+        disp(['ROI Threshold Reached: ', num2str(roiThresholdReached)]);
+        disp(['Power Ratio Threshold Reached: ', num2str(powerRatioThresholdReached)]);
 
         % Check for seizure with hysteresis
-        seizureDetected = (roiPower > ROI_THRESHOLD) && (powerRatio > POWER_RATIO_THRESHOLD);
-        
+        seizureDetected = roiThresholdReached && powerRatioThresholdReached;
+
         if seizureDetected
             seizureCount = seizureCount + 1;
         else
@@ -53,15 +71,17 @@ function detectSeizure(accelBuffer, sampleRate, updateGUI, timeBuffer, ...
 
         % Update detection count based on seizure count
         if seizureCount >= MIN_SEIZURE_COUNT
-            detectionCount = min(detectionCount + 1, MAX_DETECTION_COUNT); % Cap detectionCount to avoid overflow
+            detectionCount = detectionCount + 1;
+            detectionCount = min(detectionCount, MAX_DETECTION_COUNT); % Cap detectionCount to avoid overflow
         else
-            detectionCount = max(0, detectionCount - 1);  % Decrease count, but not below 0
+            detectionCount = detectionCount - 1;
+            detectionCount = max(0, detectionCount);  % Decrease count, but not below 0
         end
 
         % Determine status based on detection count
-        if detectionCount >= MIN_SEIZURE_COUNT  % Seizure detected for a sustained period
+        if detectionCount >= ALARM_THRESHOLD  % Seizure detected for a sustained period
             status = 'Alarm: Seizure detected!';
-        elseif detectionCount >= 1  % Possible seizure
+        elseif detectionCount >= WARNING_THRESHOLD  % Possible seizure
             status = 'Warning: Possible seizure!';
         else
             status = 'No Seizure';
@@ -71,12 +91,16 @@ function detectSeizure(accelBuffer, sampleRate, updateGUI, timeBuffer, ...
         lastUpdateTime = recentTimeBuffer(end);
     else
         status = lastStatus;
+        roiPower = NaN; % If not enough time has passed, return NaN for outputs
+        powerRatio = NaN;
+        seizureDetected = false;
     end
 
-    % Update GUI with current data
-    n = length(recentAccelBuffer);
-    timeData = linspace(0, n/sampleRate, n);
-    accelMagnitude = sqrt(sum(recentAccelBuffer.^2, 2)); % Combine 3-axis data
-    updateGUI(timeData, accelMagnitude, status);
+    % Update GUI with current data, if updateGUI function handle is provided
+    if ~isempty(updateGUI)
+        n = length(recentAccelBuffer);
+        timeData = linspace(0, n/sampleRate, n);
+        accelMagnitude = sqrt(sum(recentAccelBuffer.^2, 2)); % Combine 3-axis data
+        updateGUI(timeData, accelMagnitude, status);
+    end
 end
-

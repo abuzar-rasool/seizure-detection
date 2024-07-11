@@ -83,6 +83,7 @@ function guiHandles = createGUI(stateManager)
         set(hTextConnectivityStatus, 'BackgroundColor', 'white');
     end
     
-    % Return the updateGUI function handle and state manager
+    % Return the updateGUI function handle and figure handle
     guiHandles.updateGUI = @updateGUI;
+    guiHandles.hFigure = hFig;
 end
