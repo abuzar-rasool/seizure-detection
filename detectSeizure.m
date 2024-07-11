@@ -1,4 +1,4 @@
-function detectSeizure(accelBuffer, sampleRate, updateGUI)
+function detectSeizure(accelBuffer, sampleRate, updateGUI, timeBuffer)
     persistent detectionCount lastStatus lastUpdateTime
     if isempty(detectionCount), detectionCount = 0; end
     if isempty(lastStatus), lastStatus = 'No Seizure'; end
@@ -19,10 +19,9 @@ function detectSeizure(accelBuffer, sampleRate, updateGUI)
 
     % Use the most recent 5 seconds of data for GUI update
     recentAccelBuffer = accelBuffer(end-numSamples+1:end, :);
-
+    recentTimeBuffer = timeBuffer(end-numSamples+1:end);
     % Perform FFT and power calculations every 5 seconds
-    currentTime = toc;
-    if currentTime - lastUpdateTime >= 5
+    if recentTimeBuffer(end) - lastUpdateTime >= 5
         [roiPower, powerRatio, totalPower] = processFFTAndPower(recentAccelBuffer, sampleRate);
 
         % Print debugging information
@@ -30,7 +29,7 @@ function detectSeizure(accelBuffer, sampleRate, updateGUI)
         disp(['Power Ratio: ', num2str(powerRatio)]);
 
         % Thresholds (adjust these based on testing)
-        roiThreshold = 15;
+        roiThreshold = 3;
         powerRatioThreshold = 0.01;
 
         % Check for seizure with hysteresis
@@ -61,7 +60,7 @@ function detectSeizure(accelBuffer, sampleRate, updateGUI)
         end
 
         lastStatus = status;
-        lastUpdateTime = currentTime;
+        lastUpdateTime = recentTimeBuffer(end);
     else
         status = lastStatus;
     end
