@@ -1,0 +1,20 @@
+name: MATLAB Test Workflow
+
+on: [push]
+
+jobs:
+  run-matlab-tests:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Set up MATLAB
+      uses: matlab-actions/setup-matlab@v1
+      with:
+        release: latest
+
+    - name: Run MATLAB tests
+      run: |
+        matlab -batch "addpath('tests'); results = runtests('unit_test'); assertSuccess(results);"
