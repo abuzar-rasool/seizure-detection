@@ -17,7 +17,7 @@ clear all;
 roiThreshold = 0.00036;
 powerRationThreshold = 0.0009;
 timeInterval = 5;
-filename = './raw_processed_data_train/EPILEPSY_16.ts';  % Path to the data file
+filename = './raw_processed_data_train/EPILEPSY_1.ts';  % Path to the data file
 sampleRate = 16;             % Sample rate in Hz
 bufferSize = sampleRate * timeInterval; % Buffer size for timeInterval seconds of data
 readInterval = 1/sampleRate; % Time interval between data reads
